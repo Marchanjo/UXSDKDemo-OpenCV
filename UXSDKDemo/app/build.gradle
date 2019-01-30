@@ -58,4 +58,5 @@ dependencies {
 
     implementation ('com.dji:dji-uxsdk:4.8.1')
     compileOnly ('com.dji:dji-sdk-provided:4.8.1')
+    implementation project(':openCVLibrary343')
 }

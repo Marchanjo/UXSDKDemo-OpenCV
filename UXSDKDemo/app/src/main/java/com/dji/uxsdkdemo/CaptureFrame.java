@@ -1,5 +1,6 @@
 package com.dji.uxsdkdemo;
 
+import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -12,6 +13,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
+
+import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,6 +36,28 @@ import dji.sdk.codec.DJICodecManager;
 import dji.thirdparty.afinal.core.AsyncTask;
 
 import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
+import static org.opencv.core.CvType.CV_8UC1;
+import static org.opencv.core.CvType.CV_8UC4;
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import static org.opencv.core.CvType.CV_8UC1;
+import static org.opencv.core.CvType.CV_8UC3;
+import static org.opencv.core.CvType.CV_8UC4;
+import static org.opencv.imgproc.Imgproc.COLOR_YUV2RGBA_NV21;
+import static org.opencv.imgproc.Imgproc.COLOR_YUV2RGB_IYUV;
+import static org.opencv.imgproc.Imgproc.COLOR_YUV2RGB_NV21;
+import static org.opencv.imgproc.Imgproc.COLOR_YUV420sp2BGRA;
+import static org.opencv.imgproc.Imgproc.cvtColor;
 
 public class CaptureFrame {
     private static final String TAG = MainActivity.class.getName();
@@ -43,8 +70,11 @@ public class CaptureFrame {
     private int videoViewHeight;//Marcelo
     private ImageButton screenShot;//Marcelo
     private int  count;//Marcelo
+    private Context appContextReceived;
 
-    public CaptureFrame(ImageButton screenShot, TextureView videostreamPreviewTtView) {
+
+    public CaptureFrame(Context appContext,ImageButton screenShot, TextureView videostreamPreviewTtView) {
+        appContextReceived=appContext;
         this.screenShot = screenShot;
         screenShot.setSelected(false);
         screenShot.setOnClickListener(new View.OnClickListener() {
@@ -57,8 +87,36 @@ public class CaptureFrame {
 
         this.videostreamPreviewTtView = videostreamPreviewTtView;
         videostreamPreviewTtView.setVisibility(View.VISIBLE);
+        openCVStart();
     }
 
+    public void openCVStart() {
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0,appContextReceived,mLoaderCallback);
+        } else {
+            Log.d(TAG, "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+    }
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(appContextReceived) {testar
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS: {
+                    Log.i(TAG, "OpenCV loaded successfully");
+                    //mOpenCvCameraView.enableView();
+                    //mOpenCvCameraView.setOnTouchListener(MainActivity.this);
+                }
+                break;
+                default: {
+                    super.onManagerConnected(status);
+                }
+                break;
+            }
+        }
+    };
 
     public void onPause() {
         if (mCamera != null) {
@@ -372,7 +430,7 @@ public class CaptureFrame {
         }
 
         //Marcelo OpenCV
-       /* Mat myuv = new Mat(height + height / 2, width, CV_8UC1);
+        Mat myuv = new Mat(height + height / 2, width, CV_8UC1);
 
 
         myuv.put(0,0,bytes);//carga da matriz
@@ -391,7 +449,7 @@ public class CaptureFrame {
         Imgproc.blur(picBGR, mIntermediate, new Size(3, 3));
         Imgproc.Canny(mIntermediate, mOut, 80, 100);
 
-        Imgcodecs.imwrite(path, mOut);*/
+        Imgcodecs.imwrite(path, mOut);
         //showImg(mOut);
         //fim Meu OpenCV
 
