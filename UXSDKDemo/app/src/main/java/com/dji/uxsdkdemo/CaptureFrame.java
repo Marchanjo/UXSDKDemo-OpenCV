@@ -100,7 +100,7 @@ public class CaptureFrame {
         }
     }
 
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(appContextReceived) {testar
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(appContextReceived) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
