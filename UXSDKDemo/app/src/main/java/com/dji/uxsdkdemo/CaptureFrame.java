@@ -6,11 +6,9 @@ import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
 import android.os.Environment;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -35,28 +33,14 @@ import dji.sdk.camera.VideoFeeder;
 import dji.sdk.codec.DJICodecManager;
 import dji.thirdparty.afinal.core.AsyncTask;
 
-import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
 import static org.opencv.core.CvType.CV_8UC1;
 import static org.opencv.core.CvType.CV_8UC4;
 import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.CvType;
-import org.opencv.core.Mat;
 import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
-import static org.opencv.core.CvType.CV_8UC1;
-import static org.opencv.core.CvType.CV_8UC3;
-import static org.opencv.core.CvType.CV_8UC4;
-import static org.opencv.imgproc.Imgproc.COLOR_YUV2RGBA_NV21;
-import static org.opencv.imgproc.Imgproc.COLOR_YUV2RGB_IYUV;
-import static org.opencv.imgproc.Imgproc.COLOR_YUV2RGB_NV21;
-import static org.opencv.imgproc.Imgproc.COLOR_YUV420sp2BGRA;
+
 import static org.opencv.imgproc.Imgproc.cvtColor;
 
 public class CaptureFrame {
@@ -64,17 +48,24 @@ public class CaptureFrame {
     private DJICodecManager mCodecManager;//Marcelo
     private VideoFeeder.VideoFeed standardVideoFeeder;//Marcelo
     protected VideoFeeder.VideoDataListener mReceivedVideoDataListener = null;//Marcelo
-    private Camera mCamera;//Marcelo
+    private Camera mDroneCamera;//Marcelo
     private TextureView videostreamPreviewTtView;//Marcelo
     private int videoViewWidth;//Marcelo
     private int videoViewHeight;//Marcelo
     private ImageButton screenShot;//Marcelo
     private int  count;//Marcelo
-    private Context appContextReceived;
+    private Context appContext;
+
+    public CaptureFrame(Context appContext, TextureView videostreamPreviewTtView) {
+        this.appContext = appContext;
+        this.videostreamPreviewTtView = videostreamPreviewTtView;
+        videostreamPreviewTtView.setVisibility(View.VISIBLE);
+        openCVStart();
+    }
 
 
     public CaptureFrame(Context appContext,ImageButton screenShot, TextureView videostreamPreviewTtView) {
-        appContextReceived=appContext;
+        this.appContext = appContext;
         this.screenShot = screenShot;
         screenShot.setSelected(false);
         screenShot.setOnClickListener(new View.OnClickListener() {
@@ -93,14 +84,14 @@ public class CaptureFrame {
     public void openCVStart() {
         if (!OpenCVLoader.initDebug()) {
             Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0,appContextReceived,mLoaderCallback);
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, appContext,mLoaderCallback);
         } else {
             Log.d(TAG, "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
 
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(appContextReceived) {
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(appContext) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
@@ -119,7 +110,7 @@ public class CaptureFrame {
     };
 
     public void onPause() {
-        if (mCamera != null) {
+        if (mDroneCamera != null) {
             if (VideoFeeder.getInstance().getPrimaryVideoFeed() != null) {
                 VideoFeeder.getInstance().getPrimaryVideoFeed().removeVideoDataListener(mReceivedVideoDataListener);
             }
@@ -142,13 +133,13 @@ public class CaptureFrame {
     }
 
 
-    private void showToast(String s) {//Marcelo
+    private void showToast(String s) {
         Toast.makeText(videostreamPreviewTtView.getContext(), s, Toast.LENGTH_SHORT).show();
     }
 
-    private long lastupdate;//Marcelo
+    private long lastupdate;
 
-    private void notifyStatusChange() {//Marcelo
+    private void notifyStatusChange() {
         final BaseProduct product = VideoDecodingApplication.getProductInstance();
         Log.d(TAG, "notifyStatusChange: " + (product == null ? "Disconnect" : (product.getModel() == null ? "null model" : product.getModel().name())));
 
@@ -177,12 +168,12 @@ public class CaptureFrame {
         };
 
         if (null == product || !product.isConnected()) {
-            mCamera = null;
+            mDroneCamera = null;
             showToast("Disconnected");
         } else {
             if (!product.getModel().equals(Model.UNKNOWN_AIRCRAFT)) {
-                mCamera = product.getCamera();
-                mCamera.setMode(SettingsDefinitions.CameraMode.SHOOT_PHOTO, new CommonCallbacks.CompletionCallback() {
+                mDroneCamera = product.getCamera();
+                mDroneCamera.setMode(SettingsDefinitions.CameraMode.SHOOT_PHOTO, new CommonCallbacks.CompletionCallback() {
                     @Override
                     public void onResult(DJIError djiError) {
                         if (djiError != null) {
@@ -300,21 +291,21 @@ public class CaptureFrame {
     }
 
 //Captura um único frame
-    private void handleYUVClickSingleFrame() {
+    public void handleYUVClickSingleFrame() {
             showToast("Frame Captured");
             mCodecManager.enabledYuvData(true);
         Log.i(TAG, "SaveFrame01");
             mCodecManager.setYuvDataCallback(new DJICodecManager.YuvDataCallback() {
                 @Override
                 public void onYuvDataReceived(final ByteBuffer yuvFrame, int dataSize, final int width, final int height) {
-                    if (count++ == 30 && yuvFrame != null) {
+                    if (count++ == 30 && yuvFrame != null){
                         Log.i(TAG, "SaveFrame02");
                         final byte[] bytes = new byte[dataSize];
                         Log.i(TAG, "SaveFrame03");
                         yuvFrame.get(bytes);
                         Log.i(TAG, "SaveFrame04");
                         saveYuvDataToJPEG(bytes, width, height);
-                        Log.i(TAG, "SaveFrame05");
+                        Log.i(TAG, "SaveFrame05"); //ele demora entre 1 e 2 e demora mais entre o 5 e o 6 e parece que falha na segunda captura
 
                         mCodecManager.enabledYuvData(false);
                         Log.i(TAG, "SaveFrame06");

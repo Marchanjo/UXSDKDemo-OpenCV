@@ -7,6 +7,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.TextureView;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 
@@ -14,6 +15,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getName();
     private CaptureFrame frameAccess;
+    private Button test;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,8 +39,19 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         Log.i(TAG, "Classe 01");
-        frameAccess = new CaptureFrame(this,(ImageButton) findViewById(R.id.activity_main_screen_shot), (TextureView) findViewById(R.id.livestream_preview));
+        //frameAccess = new CaptureFrame(this,(ImageButton) findViewById(R.id.activity_main_screen_shot), (TextureView) findViewById(R.id.livestream_preview));
+        frameAccess = new CaptureFrame(this, (TextureView) findViewById(R.id.livestream_preview));
         Log.i(TAG, "Classe 02");
+
+        test=findViewById(R.id.activity_test);
+        test.setSelected(false);
+        test.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //handleYUVClick();//Captura 1 frame a cada 30
+                frameAccess.handleYUVClickSingleFrame();//Captura somente um frame
+            }
+        });
     }
 
     @Override

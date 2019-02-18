@@ -17,8 +17,8 @@
         android:alpha="50"
         android:visibility="visible"/>
 
-    <!-- Widget to see first person view (FPV)
-    <dji.ux.widget.FPVWidget
+    <!-- Widget to see first person view (FPV)-->
+    <!--<dji.ux.widget.FPVWidget
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>-->
 
@@ -154,6 +154,15 @@
         android:layout_height="91dp"
         android:layout_marginRight="12dp"
         tools:ignore="RtlHardcoded"/>
+
+    <Button
+    android:id="@+id/activity_test"
+    android:layout_width="150dp"
+    android:layout_height="wrap_content"
+    android:text="Test"
+    android:clickable="true"
+    android:onClick="onClick"
+    android:gravity="center" />
 
 </LinearLayout>
 
