@@ -39,8 +39,8 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         Log.i(TAG, "Classe 01");
-        //frameAccess = new CaptureFrame(this,(ImageButton) findViewById(R.id.activity_main_screen_shot), (TextureView) findViewById(R.id.livestream_preview));
-        frameAccess = new CaptureFrame(this, (TextureView) findViewById(R.id.livestream_preview));
+        frameAccess = new CaptureFrame(this,(ImageButton) findViewById(R.id.activity_main_screen_shot), (TextureView) findViewById(R.id.livestream_preview));
+        //frameAccess = new CaptureFrame(this, (TextureView) findViewById(R.id.livestream_preview));
         Log.i(TAG, "Classe 02");
 
         test=findViewById(R.id.activity_test);
