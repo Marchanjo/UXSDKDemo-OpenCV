@@ -1,5 +1,6 @@
 package com.dji.uxsdkdemo;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
@@ -49,8 +50,7 @@ public class CaptureFrame {
     private DJICodecManager mCodecManager;//Marcelo
     private VideoFeeder.VideoFeed standardVideoFeeder;//Marcelo
     protected VideoFeeder.VideoDataListener mReceivedVideoDataListener = null;//Marcelo
-    //private volatile boolean canCloseYuvDataCallback;//é alterada por diferentes threads
-    final ConditionVariable canCloseYuvDataCallback = new ConditionVariable();//é alterada por diferentes threads
+    //final ConditionVariable canCloseYuvDataCallback = new ConditionVariable();//é alterada por diferentes threads
     private Camera mDroneCamera;//Marcelo
     private TextureView videostreamPreviewTtView;//Marcelo
     private int videoViewWidth;//Marcelo
@@ -58,23 +58,29 @@ public class CaptureFrame {
     private ImageButton screenShot;//Marcelo
     private int  count;//Marcelo
     private Context appContext;
+    private Activity appActivity;
+
 
     public CaptureFrame(Context appContext, TextureView videostreamPreviewTtView) {
         this.appContext = appContext;
+        this.appActivity =  (Activity) appContext;
+
         this.videostreamPreviewTtView = videostreamPreviewTtView;
         videostreamPreviewTtView.setVisibility(View.VISIBLE);
         openCVStart();
     }
 
 
-    public CaptureFrame(Context appContext,ImageButton screenShot, TextureView videostreamPreviewTtView) {
+    public CaptureFrame(Context appContext, ImageButton screenShot, TextureView videostreamPreviewTtView) {
         this.appContext = appContext;
+        this.appActivity =  (Activity) appContext;
         this.screenShot = screenShot;
+
         screenShot.setSelected(false);
         screenShot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleYUVClick2();//Captura 1 frame a cada 30
+                handleYUVClick();//Captura 1 frame a cada 30
                 //handleYUVClickSingleFrame();//Captura somente um frame
             }
         });
@@ -322,33 +328,41 @@ public class CaptureFrame {
 
     }*/
 
+
+/*
+    //captura um frama, funciona corretamente mas bloqueia a UI enquanto salva
     public void handleYUVClickSingleFrame() {
+        final ConditionVariable saveFrameConditionVar = new ConditionVariable();
         showToast("Start Frame Capture");
         mCodecManager.enabledYuvData(true);
         Log.i(TAG, "SaveFrame01");
-        canCloseYuvDataCallback.close();
-        count=0;
+        //saveFrameConditionVar.close();
+        final int[] countFrame = {0};//na verdade é uma simples variável int mas tem que ser final para usar na callback, e sendo final não pode ser altera, logo tem que ser array e usar a posição [0]
         mCodecManager.setYuvDataCallback(new DJICodecManager.YuvDataCallback() {
             @Override
             public void onYuvDataReceived(final ByteBuffer yuvFrame, int dataSize, final int width, final int height) {
                 //In this demo, we test the YUV data by saving it into JPG files.
                 //DJILog.d(TAG, "onYuvDataReceived " + dataSize);
-                if (count++ == 30 && yuvFrame != null) {
+                if (countFrame[0]++ == 30 && yuvFrame != null) {
                     final byte[] bytes = new byte[dataSize];
                     yuvFrame.get(bytes);
-                    Log.i(TAG, "SaveFrame02: " + count);
+                    Log.i(TAG, "SaveFrame02: " + countFrame[0]);
                     Log.i(TAG, "SaveFrame03");
                     AsyncTask.execute(new Runnable() {
                         @Override
                         public void run() {
-                            singleFrameSaveYuvDataToJPEG(bytes, width, height);//muda canCloseYuvDataCallback para true
+                            Log.i(TAG, "SaveFrame04");
+                            saveYuvDataToJPEG(bytes, width, height);
+                            Log.i(TAG, "SaveFrame05");
+                            saveFrameConditionVar.open();
+                            Log.i(TAG, "SaveFrame06");
                         }
                     });
                 }
             }
         });
         Log.i(TAG, "SaveFrame07");
-        boolean waitSuccess = canCloseYuvDataCallback.block(5000);
+        boolean waitSuccess = saveFrameConditionVar.block(5000);
         if(waitSuccess)Log.i(TAG, "SaveFrame08:Success");
         else Log.i(TAG, "SaveFrame08:Fail");
 
@@ -357,15 +371,56 @@ public class CaptureFrame {
         mCodecManager.setYuvDataCallback(null);
         Log.i(TAG, "SaveFrame10");
         showToast("End Frame Capture");
+    }*/
+
+
+
+
+
+    public void handleYUVClickSingleFrame() {
+        showToast("Start Frame Capture");
+        mCodecManager.enabledYuvData(true);
+        Log.i(TAG, "SaveFrame01");
+
+        final int[] countFrame = {0};//na verdade é uma simples variável int mas tem que ser final para usar na callback, e sendo final não pode ser altera, logo tem que ser array e usar a posição [0]
+        mCodecManager.setYuvDataCallback(new DJICodecManager.YuvDataCallback() {
+            @Override
+            public void onYuvDataReceived(final ByteBuffer yuvFrame, int dataSize, final int width, final int height) {
+                //In this demo, we test the YUV data by saving it into JPG files.
+                //DJILog.d(TAG, "onYuvDataReceived " + dataSize);
+                if (countFrame[0]++ == 30 && yuvFrame != null) {
+                    final byte[] bytes = new byte[dataSize];
+                    yuvFrame.get(bytes);
+                    Log.i(TAG, "SaveFrame02: " + countFrame[0]);
+                    Log.i(TAG, "SaveFrame03");
+                    AsyncTask.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.i(TAG, "SaveFrame04");
+                            saveYuvDataToJPEG(bytes, width, height);
+                            Log.i(TAG, "SaveFrame05");
+
+                            appActivity.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mCodecManager.enabledYuvData(false);
+                                    Log.i(TAG, "SaveFrame06");
+                                    mCodecManager.setYuvDataCallback(null);
+                                    Log.i(TAG, "SaveFrame07 - end");
+                                    showToast("End Frame Capture");
+                                }
+                            });
+
+                        }
+                    });
+                }
+            }
+        });
+
+
+
     }
 
-    private void singleFrameSaveYuvDataToJPEG(byte[] yuvFrame, int width, int height) {
-        Log.i(TAG, "SaveFrame04");
-        saveYuvDataToJPEG(yuvFrame, width, height);
-        Log.i(TAG, "SaveFrame05");
-        canCloseYuvDataCallback.open();
-        Log.i(TAG, "SaveFrame06");
-    }
 
 
 
@@ -373,7 +428,7 @@ public class CaptureFrame {
 
 
 
-///Captura 1 frame a cada 30 frames - funciona OK
+///Captura 1 frame, funciona OK,  mas depende de dois cliques no botão (um para iniciar outro para parar
 private void handleYUVClick2() {
         if (screenShot.isSelected()) {
             showToast("Stop Capturing Frames ");
