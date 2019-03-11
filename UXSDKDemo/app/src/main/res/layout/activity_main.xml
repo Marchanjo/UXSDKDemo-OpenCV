@@ -10,12 +10,25 @@
 
     <TextureView
         android:id="@+id/livestream_preview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_centerInParent="true"
-        android:layout_gravity="center"
+        android:layout_width="300dp"
+        android:layout_height="168dp"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
         android:alpha="50"
         android:visibility="visible"/>
+
+    <!--org.opencv.android.JavaCameraView
+        android:id="@+id/openCV_preview"
+        android:layout_width="200dp"
+        android:layout_height="110dp"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"/-->
+    <ImageView
+        android:id="@+id/openCV_preview"
+        android:layout_width="300dp"
+        android:layout_height="168dp"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"/>
 
     <!-- Widget to see first person view (FPV)-->
     <!--<dji.ux.widget.FPVWidget
@@ -194,6 +207,7 @@
         android:gravity="center"
         android:focusable="true"
         android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
         android:layout_centerVertical="true"
         android:src="@drawable/ic_burst_mode"
         android:background="@drawable/bg"
@@ -201,7 +215,7 @@
         />
 
 
-    <!--<dji.ux.widget.controls.CameraControlsWidget
+    <dji.ux.widget.controls.CameraControlsWidget
         android:id="@+id/CameraCapturePanel"
         android:layout_alignParentRight="true"
         android:layout_below="@id/camera"
@@ -228,7 +242,7 @@
         android:background="@color/transparent"
         android:gravity="center"
         android:visibility="invisible"
-        tools:ignore="RtlHardcoded"/>-->
+        tools:ignore="RtlHardcoded"/>
 
     <!-- Pre-flight checklist panel -->
     <dji.ux.panel.PreFlightCheckListPanel

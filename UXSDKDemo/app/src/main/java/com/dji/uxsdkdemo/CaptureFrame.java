@@ -2,6 +2,7 @@ package com.dji.uxsdkdemo;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -12,8 +13,10 @@ import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
+import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
@@ -48,7 +51,7 @@ import static org.opencv.imgproc.Imgproc.cvtColor;
 public class CaptureFrame {
     private static final String TAG = MainActivity.class.getName();
     private DJICodecManager mCodecManager;//Marcelo
-    private VideoFeeder.VideoFeed standardVideoFeeder;//Marcelo
+    //private VideoFeeder.VideoFeed standardVideoFeeder;//Marcelo
     protected VideoFeeder.VideoDataListener mReceivedVideoDataListener = null;//Marcelo
     private Camera mDroneCamera;//Marcelo
     private TextureView videostreamPreviewTtView;//Marcelo
@@ -57,6 +60,10 @@ public class CaptureFrame {
     private ImageButton screenShot;//Marcelo
     private int  count;//Marcelo
     private Activity appActivity;
+    private ImageView imageView;
+    private Detection detector;
+
+    private Mat mOut;
 
 
     public CaptureFrame(Activity appActivity, TextureView videostreamPreviewTtView) {
@@ -67,7 +74,8 @@ public class CaptureFrame {
     }
 
 
-    public CaptureFrame(Activity appActivity, ImageButton screenShot, TextureView videostreamPreviewTtView) {
+    public CaptureFrame(Activity appActivity, ImageButton screenShot, TextureView videostreamPreviewTtView, ImageView imageView) {
+        detector = new Detection();
         this.screenShot = screenShot;
         screenShot.setSelected(false);
         screenShot.setOnClickListener(new View.OnClickListener() {
@@ -77,6 +85,8 @@ public class CaptureFrame {
                 //handleYUVClickSingleFrame();//Captura somente um frame
             }
         });
+
+        this.imageView = imageView;
 
         this.appActivity =  appActivity;
         this.videostreamPreviewTtView = videostreamPreviewTtView;
@@ -117,9 +127,9 @@ public class CaptureFrame {
             if (VideoFeeder.getInstance().getPrimaryVideoFeed() != null) {
                 VideoFeeder.getInstance().getPrimaryVideoFeed().removeVideoDataListener(mReceivedVideoDataListener);
             }
-            if (standardVideoFeeder != null) {
-                standardVideoFeeder.removeVideoDataListener(mReceivedVideoDataListener);
-            }
+            //if (standardVideoFeeder != null) {
+             //   standardVideoFeeder.removeVideoDataListener(mReceivedVideoDataListener);
+            //}
         }
     }
 
@@ -238,7 +248,6 @@ public class CaptureFrame {
     }
 
 
-
  //Captura 1 frame a cada 30 frames - funciona OK
     private void handleYUVClick() {
         if (screenShot.isSelected()) {
@@ -275,12 +284,8 @@ public class CaptureFrame {
         }
     }
 
-
-
-
     public void handleYUVClickSingleFrame() {
-        showToast("Start Frame Capture");
-        Log.i(TAG, "SaveFrame StartFunction");
+        //showToast("Start Frame Capture");
         mCodecManager.enabledYuvData(true);
         final int[] countFrame = {0};//na verdade é uma simples variável int mas tem que ser final para usar na callback, e sendo final não pode ser alterada, logo tem que ser array e usar a posição [0]
         mCodecManager.setYuvDataCallback(new DJICodecManager.YuvDataCallback() {
@@ -301,7 +306,6 @@ public class CaptureFrame {
                                 public void run() {
                                     mCodecManager.enabledYuvData(false);//tem que executar na thread da UI
                                     mCodecManager.setYuvDataCallback(null);//tem que executar na thread da UI
-                                    Log.i(TAG, "SaveFrame CloseCallback");
                                 }
                             });
 
@@ -313,15 +317,12 @@ public class CaptureFrame {
                         @Override
                         public void run() {
                             saveYuvDataToJPEG(bytes, width, height);
-                            Log.i(TAG, "SaveFrame File");
                         }
                     });
                 }
             }
         });
-
-    Log.i(TAG, "SaveFrame EndFunction");
-    showToast("End Frame Capture");
+    showToast("Frame Capture");
     }
 
 
@@ -378,20 +379,47 @@ public class CaptureFrame {
         myuv.put(0,0,bytes);//carga da matriz
 
         Mat picBGR = new Mat(height, width, CV_8UC4);
-
         cvtColor(myuv, picBGR, Imgproc.COLOR_YUV2BGRA_NV21);
 
-        Mat mOut = new Mat(picBGR.height(),picBGR.width(), CvType.CV_8UC4);
-        Mat mIntermediate = new Mat(picBGR.height(),picBGR.width(), CvType.CV_8UC4);
+        mOut = new Mat(picBGR.height(),picBGR.width(), CvType.CV_8UC4);
 
         final String path = Environment.getExternalStorageDirectory() + "/DJI_ScreenShot" + "/ScreenShot_" + System.currentTimeMillis() +"_OpenCV.jpg";
         Log.i(TAG, "OpenCV path: " + path);
-
-
+        /*
+        Mat mIntermediate = new Mat(picBGR.height(),picBGR.width(), CvType.CV_8UC4);
         Imgproc.blur(picBGR, mIntermediate, new Size(3, 3));
-        Imgproc.Canny(mIntermediate, mOut, 80, 100);
+        Imgproc.Canny(mIntermediate, mOut, 80, 100);*/
+        Log.i("capture", "ClassDetect01");
+        mOut=detector.preProcessing(picBGR);
+        Log.i("capture", "ClassDetect05");
+/*
+        não mostra log ClassDetect06
+
+        03-01 18:09:45.774 19149-19850/com.dji.uxsdkdemo E/AndroidRuntime: FATAL EXCEPTION: AsyncTask #2
+        Process: com.dji.uxsdkdemo, PID: 19149
+        CvException [org.opencv.core.CvException: cv::Exception: OpenCV(3.4.3) /build/3_4_pack-android/opencv/modules/imgproc/src/color.hpp:255: error: (-2:Unspecified error) in function 'cv::CvtHelper<VScn, VDcn, VDepth, sizePolicy>::CvtHelper(cv::InputArray, cv::OutputArray, int) [with VScn = cv::Set<3, 4>; VDcn = cv::Set<3, 4>; VDepth = cv::Set<0, 2, 5>; cv::SizePolicy sizePolicy = (cv::SizePolicy)2u; cv::InputArray = const cv::_InputArray&; cv::OutputArray = const cv::_OutputArray&]'
+                > Invalid number of channels in input image:
+    >     'VScn::contains(scn)'
+                > where
+                >     'scn' is 1
+    ]
+        at org.opencv.imgproc.Imgproc.cvtColor_1(Native Method)
+        at org.opencv.imgproc.Imgproc.cvtColor(Imgproc.java:2223)
+        at com.dji.uxsdkdemo.CaptureFrame.showImg(CaptureFrame.java:424)
+        at com.dji.uxsdkdemo.CaptureFrame.saveYuvDataToJPEG(CaptureFrame.java:394)
+        at com.dji.uxsdkdemo.CaptureFrame.access$900(CaptureFrame.java:51)
+        at com.dji.uxsdkdemo.CaptureFrame$7$2.run(CaptureFrame.java:317)
+        at dji.thirdparty.afinal.core.AsyncTask$SerialExecutor$1.run(Unknown Source)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1113)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:588)
+        at java.lang.Thread.run(Thread.java:818)*/
+
+        showImg(mOut);
+        Log.i("capture", "ClassDetect08");
+        Imgcodecs.imwrite(path, mOut);
 
 
+/*
         //showImg(mOut);
         //fim Meu OpenCV
 
@@ -400,10 +428,32 @@ public class CaptureFrame {
         Log.i(TAG, "SaveFrame 04b");
 
        // Imgcodecs.imwrite(path, mOut);//fim Meu OpenCV
-        Imgcodecs.imwrite(path, picBGR);//fim Meu OpenCV
+        Imgcodecs.imwrite(path, picBGR);//fim Meu OpenCV*/
     }
-/* não funcionou
-    private void showImg(Mat img) {
+
+    private void showImg(Mat in){
+        final Mat img = new Mat(in.height(),in.width(), CvType.CV_8UC4);
+        cvtColor(in, img, Imgproc.COLOR_BGR2RGB);
+        Log.i("capture", "ClassDetect06");
+        AsyncTask.execute(new Runnable() {//async para não segurar a thread
+            @Override
+            public void run() {
+                appActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Bitmap bmImg = Bitmap.createBitmap(img.cols(), img.rows(),Bitmap.Config.ARGB_8888);
+                        Utils.matToBitmap(img, bmImg);
+                        imageView.setImageBitmap(bmImg);
+                        Log.i("capture", "ClassDetect07");
+                    }
+                });
+
+            }
+        });
+    }
+
+
+   /* private void showImg(Mat img) {
         Log.i(TAG, "OpenCV show 01: ");
         Bitmap bm = Bitmap.createBitmap(img.cols(), img.rows(),Bitmap.Config.ARGB_8888);
         Log.i(TAG, "OpenCV show 02: ");

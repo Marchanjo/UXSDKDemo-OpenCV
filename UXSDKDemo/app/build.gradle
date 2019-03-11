@@ -56,7 +56,7 @@ dependencies {
     implementation 'junit:junit:4.12'
     implementation 'com.android.support:multidex:1.0.1'
 
-    implementation ('com.dji:dji-uxsdk:4.8.1')
-    compileOnly ('com.dji:dji-sdk-provided:4.8.1')
+    implementation ('com.dji:dji-uxsdk:4.9')
+    compileOnly ('com.dji:dji-sdk-provided:4.9')
     implementation project(':openCVLibrary343')
 }
