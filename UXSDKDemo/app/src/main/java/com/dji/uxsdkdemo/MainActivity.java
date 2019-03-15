@@ -52,7 +52,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //handleYUVClick();//Captura 1 frame a cada 30
-                frameAccess.handleYUVClickSingleFrame();//Captura somente um frame
+                //frameAccess.handleYUVClickSingleFrame();//Captura somente um frame
+                frameAccess.captureFrameFromSurface();//Captura somente um frame
             }
         });
     }

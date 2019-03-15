@@ -9,6 +9,8 @@ import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
 import android.os.ConditionVariable;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
@@ -64,6 +66,7 @@ public class CaptureFrame {
     private Detection detector;
 
     private Mat mOut;
+    private boolean capturing=false;
 
 
     public CaptureFrame(Activity appActivity, TextureView videostreamPreviewTtView) {
@@ -92,6 +95,7 @@ public class CaptureFrame {
         this.videostreamPreviewTtView = videostreamPreviewTtView;
         videostreamPreviewTtView.setVisibility(View.VISIBLE);
         openCVStart();
+        capturing=false;
     }
 
     public void openCVStart() {
@@ -131,6 +135,7 @@ public class CaptureFrame {
              //   standardVideoFeeder.removeVideoDataListener(mReceivedVideoDataListener);
             //}
         }
+        capturing=false;
     }
 
     public void onDestroy() {
@@ -138,11 +143,13 @@ public class CaptureFrame {
             mCodecManager.cleanSurface();
             mCodecManager.destroyCodec();
         }
+        capturing=false;
     }
 
     public void onResume() {
         initSurfaceOrTextureView();
         notifyStatusChange();
+        capturing=false;
     }
 
 
@@ -284,6 +291,62 @@ public class CaptureFrame {
         }
     }
 
+    public void captureFrameFromSurface() {
+        //Marcelo OpenCV
+
+        /*AsyncTask.execute(new Runnable() {//async para não segurar a thread
+            @Override
+            public void run() {
+                appActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Mat mOut = new Mat();
+                        Utils.bitmapToMat(videostreamPreviewTtView.getBitmap(), mOut);
+                        Imgproc.cvtColor(mOut, mOut, Imgproc.COLOR_RGB2BGR);
+                        final String path = Environment.getExternalStorageDirectory() + "/DJI_ScreenShot" + "/ScreenShot_" + System.currentTimeMillis()+ "_OpenCV3.jpg";;
+                        showImg(mOut);
+                        Imgcodecs.imwrite(path, mOut);
+
+                    }
+                });
+
+            }
+        });*/
+        capturing=true;
+        callRunnable();
+    }
+
+    private void callRunnable (){
+        if(capturing) handler.postDelayed(refresh,50);
+    }
+
+    Handler handler = new Handler(Looper.getMainLooper());
+
+    private Runnable refresh = new Runnable() {//async para não segurar a thread
+        @Override
+        public void run() {
+                    Mat inputFrame = new Mat();
+                    Utils.bitmapToMat(videostreamPreviewTtView.getBitmap(), inputFrame);
+                    Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_RGB2BGR);
+
+//                    Mat mIntermediate;
+//                    mIntermediate = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC4);
+//                    Mat mOutGray = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC1);
+//                    mOut = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC4);
+//                    Imgproc.blur(inputFrame, mIntermediate, new Size(3, 3));
+//                    Imgproc.Canny(mIntermediate, mOutGray, 80, 100);
+//                    Imgproc.cvtColor(mOutGray, mOut, Imgproc.COLOR_GRAY2BGR);
+
+
+
+                    mOut=detector.preProcessing(inputFrame);
+                    showImg(mOut);
+                    //final String path = Environment.getExternalStorageDirectory() + "/DJI_ScreenShot" + "/ScreenShot_" + System.currentTimeMillis()+ "_OpenCV3.jpg";;
+                    //Imgcodecs.imwrite(path, mOut);
+                    callRunnable();
+                }
+    };
+
     public void handleYUVClickSingleFrame() {
         //showToast("Start Frame Capture");
         mCodecManager.enabledYuvData(true);
@@ -383,8 +446,10 @@ public class CaptureFrame {
 
         mOut = new Mat(picBGR.height(),picBGR.width(), CvType.CV_8UC4);
 
-        final String path = Environment.getExternalStorageDirectory() + "/DJI_ScreenShot" + "/ScreenShot_" + System.currentTimeMillis() +"_OpenCV.jpg";
-        Log.i(TAG, "OpenCV path: " + path);
+        final String path = Environment.getExternalStorageDirectory() + "/DJI_ScreenShot" + "/ScreenShot_" + System.currentTimeMillis();
+        final String path1 = path +"_OpenCV1.jpg";
+        final String path2 = path +"_OpenCV2.jpg";
+        Log.i(TAG, "OpenCV path: " + path2);
         /*
         Mat mIntermediate = new Mat(picBGR.height(),picBGR.width(), CvType.CV_8UC4);
         Imgproc.blur(picBGR, mIntermediate, new Size(3, 3));
@@ -392,31 +457,11 @@ public class CaptureFrame {
         Log.i("capture", "ClassDetect01");
         mOut=detector.preProcessing(picBGR);
         Log.i("capture", "ClassDetect05");
-/*
-        não mostra log ClassDetect06
-
-        03-01 18:09:45.774 19149-19850/com.dji.uxsdkdemo E/AndroidRuntime: FATAL EXCEPTION: AsyncTask #2
-        Process: com.dji.uxsdkdemo, PID: 19149
-        CvException [org.opencv.core.CvException: cv::Exception: OpenCV(3.4.3) /build/3_4_pack-android/opencv/modules/imgproc/src/color.hpp:255: error: (-2:Unspecified error) in function 'cv::CvtHelper<VScn, VDcn, VDepth, sizePolicy>::CvtHelper(cv::InputArray, cv::OutputArray, int) [with VScn = cv::Set<3, 4>; VDcn = cv::Set<3, 4>; VDepth = cv::Set<0, 2, 5>; cv::SizePolicy sizePolicy = (cv::SizePolicy)2u; cv::InputArray = const cv::_InputArray&; cv::OutputArray = const cv::_OutputArray&]'
-                > Invalid number of channels in input image:
-    >     'VScn::contains(scn)'
-                > where
-                >     'scn' is 1
-    ]
-        at org.opencv.imgproc.Imgproc.cvtColor_1(Native Method)
-        at org.opencv.imgproc.Imgproc.cvtColor(Imgproc.java:2223)
-        at com.dji.uxsdkdemo.CaptureFrame.showImg(CaptureFrame.java:424)
-        at com.dji.uxsdkdemo.CaptureFrame.saveYuvDataToJPEG(CaptureFrame.java:394)
-        at com.dji.uxsdkdemo.CaptureFrame.access$900(CaptureFrame.java:51)
-        at com.dji.uxsdkdemo.CaptureFrame$7$2.run(CaptureFrame.java:317)
-        at dji.thirdparty.afinal.core.AsyncTask$SerialExecutor$1.run(Unknown Source)
-        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1113)
-        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:588)
-        at java.lang.Thread.run(Thread.java:818)*/
 
         showImg(mOut);
         Log.i("capture", "ClassDetect08");
-        Imgcodecs.imwrite(path, mOut);
+        Imgcodecs.imwrite(path1, mOut);
+        Imgcodecs.imwrite(path2, picBGR);
 
 
 /*

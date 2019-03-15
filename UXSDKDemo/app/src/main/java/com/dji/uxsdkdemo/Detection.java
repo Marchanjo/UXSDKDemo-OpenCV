@@ -50,7 +50,8 @@ public class Detection {
 
     public Mat preProcessing(Mat inputFrame) {
         //mRgba = inputFrame.rgba();
-        Mat out = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC4);
+        Mat outGray = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC1);
+        Mat outColor = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC4);
         mIntermediate = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC4);
         probHoughLines = new Mat(inputFrame.height(),inputFrame.width(), CvType.CV_8UC4);
         //mIntermediateMat = inputFrame.rgba();
@@ -60,18 +61,20 @@ public class Detection {
         //Imgproc.cvtColor(inputFrame.gray(), mRgba, Imgproc.COLOR_GRAY2RGBA, 4);
 
         Imgproc.blur(inputFrame, mIntermediate, new Size(3, 3));
-        Imgproc.Canny(mIntermediate, out, 80, 100);
+        Imgproc.Canny(mIntermediate, outGray, 80, 100);
 
         Mat linesP = new Mat(); // will hold the results of the detection
-        Imgproc.HoughLinesP(out, linesP, 1, Math.PI/180, 50, 50, 10); // runs the actual detection //três últimos números 54,12,9
-        traceLinesPlus(probHoughLines,linesP);
+        Imgproc.HoughLinesP(outGray, linesP, 1, Math.PI/180, 50, 50, 10); // runs the actual detection //três últimos números 54,12,9
+
+        Imgproc.cvtColor(outGray, outColor, Imgproc.COLOR_GRAY2BGR);
+        traceLinesPlus(outColor,linesP);
         // Draw the lines
        /* for (int x = 0; x < linesP.rows(); x++) {
             double[] l = linesP.get(x, 0);
             Imgproc.line(probHoughLines, new Point(l[0], l[1]), new Point(l[2], l[3]), new Scalar(0, 0, 255), 1, Imgproc.LINE_AA, 0);
         }*/
-       // veja https://docs.opencv.org/3.4.0/d9/db0/tutorial_hough_lines.html
-        return probHoughLines;
+        // veja https://docs.opencv.org/3.4.0/d9/db0/tutorial_hough_lines.html
+        return outColor;
     }
 
     private void traceLines(Mat dest, Mat lines)
@@ -197,11 +200,11 @@ public class Detection {
         featureVectorCharger(dest, 135, line135, class135IdCounter, lines, angleRaw, classifier);
 
         //imprime retangulos nos clusters identificados
-        //identifyClusters(dest, line45, class45IdCounter, new Scalar(0, 255, 255));
-        //identifyClusters(dest, line85, class85IdCounter, new Scalar(255, 0, 255));
-        //identifyClusters(dest, line90, class90IdCounter, new Scalar(255, 200, 255));
-        //identifyClusters(dest, line95, class95IdCounter, new Scalar(0, 0, 255));
-        //identifyClusters(dest, line135, class135IdCounter, new Scalar(0, 255, 0));
+        identifyClusters(dest, line45, class45IdCounter, new Scalar(0, 255, 255));
+        identifyClusters(dest, line85, class85IdCounter, new Scalar(255, 0, 255));
+        identifyClusters(dest, line90, class90IdCounter, new Scalar(255, 200, 255));
+        identifyClusters(dest, line95, class95IdCounter, new Scalar(0, 0, 255));
+        identifyClusters(dest, line135, class135IdCounter, new Scalar(0, 127, 255));
 
         //correlação entre clusters
         //versão futura, pode fazer treinamento a partir de imagens
@@ -324,7 +327,7 @@ public class Detection {
         //busca pelo corpo da torre (body)
         for (int c85 = 0; c85 < line85Size; c85++)
             for (int c95 = 0; c95 < line95Size; c95++)
-                //if aninhado para ficar mais leve, se não passo primeiro não precisa testar os outros
+                //if aninhado para ficar mais leve, se não passa no primeiro não precisa testar os outros
                 if((line85[c85].numberOfLines > 1) && (line95[c95].numberOfLines > 1)) //exclui linhas soltas
                     if(line85[c85].x0 < line95[c95].x1)  //menor X de 85° e maior x de 95°, isto é 85° à esquerda de 95° à direita e
                         if(abs(line85[c85].x1-line95[c95].x0) < gap) //a diferença menor que gap entre o maior x de 85° e o menor x de 95°
@@ -383,7 +386,6 @@ public class Detection {
                                 }
                             }
         //busca pelo topo da torre (Top)
-        //if aninhado no for para ficar mais leve, se não encontrou no primeiro não precisa testar os outros
         for (int c90 = 0; c90 < line90Size; c90++)
             if (line90[c90].numberOfLines > 10)
             {
