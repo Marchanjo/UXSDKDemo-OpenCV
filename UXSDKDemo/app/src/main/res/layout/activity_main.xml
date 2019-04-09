@@ -41,7 +41,7 @@
         android:id="@+id/activity_test"
         android:layout_width="150dp"
         android:layout_height="wrap_content"
-        android:text="Test"
+        android:text="Save"
         android:clickable="true"
         android:onClick="onClick"
         android:layout_alignParentRight="true"

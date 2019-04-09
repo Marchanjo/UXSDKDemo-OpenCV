@@ -49,6 +49,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Size;
 
 import static org.opencv.imgproc.Imgproc.cvtColor;
+import static org.opencv.imgproc.Imgproc.fitEllipseAMS;
 
 public class CaptureFrame {
     private static final String TAG = MainActivity.class.getName();
@@ -84,8 +85,9 @@ public class CaptureFrame {
         screenShot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleYUVClick();//Captura 1 frame a cada 30
+                //handleYUVClick();//Captura 1 frame a cada 30
                 //handleYUVClickSingleFrame();//Captura somente um frame
+               captureFramesFromSurface();
             }
         });
 
@@ -291,30 +293,37 @@ public class CaptureFrame {
         }
     }
 
-    public void captureFrameFromSurface() {
-        //Marcelo OpenCV
 
-        /*AsyncTask.execute(new Runnable() {//async para não segurar a thread
-            @Override
-            public void run() {
-                appActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Mat mOut = new Mat();
-                        Utils.bitmapToMat(videostreamPreviewTtView.getBitmap(), mOut);
-                        Imgproc.cvtColor(mOut, mOut, Imgproc.COLOR_RGB2BGR);
-                        final String path = Environment.getExternalStorageDirectory() + "/DJI_ScreenShot" + "/ScreenShot_" + System.currentTimeMillis()+ "_OpenCV3.jpg";;
-                        showImg(mOut);
-                        Imgcodecs.imwrite(path, mOut);
-
-                    }
-                });
-
-            }
-        });*/
-        capturing=true;
-        callRunnable();
+    public void saveFrameFromSurface() {
+        if(mOut!=null) {
+            final String path = Environment.getExternalStorageDirectory() + "/DJI_ScreenShot" + "/ScreenShot_" + System.currentTimeMillis() + "_OpenCV3.jpg";
+            showImg(mOut);
+            Imgcodecs.imwrite(path, mOut);
+            showToast("Frame Saved");
+        }
+        else
+            showToast("Frame Error");
     }
+    //inicia a apresentação de 1 frame a cada 50ms
+    private void captureFramesFromSurface() {
+        if (screenShot.isSelected()) {
+            showToast("Stop Capturing Frames ");
+            screenShot.setImageResource(R.drawable.ic_burst_mode);
+            screenShot.setSelected(false);
+            capturing=false;
+
+        } else {//Começa a capturar frames
+            showToast("Capturing Frames ");
+            screenShot.setImageResource(R.drawable.ic_action_playback_stop);
+            screenShot.setSelected(true);
+            capturing=true;
+            callRunnable();
+
+        }
+    }
+
+
+
 
     private void callRunnable (){
         if(capturing) handler.postDelayed(refresh,50);

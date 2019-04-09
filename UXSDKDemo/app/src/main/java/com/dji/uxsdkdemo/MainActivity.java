@@ -18,7 +18,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getName();
     private CaptureFrame frameAccess;
-    private Button test;
+    private Button save;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,14 +46,14 @@ public class MainActivity extends AppCompatActivity {
         //frameAccess = new CaptureFrame(this, (TextureView) findViewById(R.id.livestream_preview));
 
 
-        test=findViewById(R.id.activity_test);
-        test.setSelected(false);
-        test.setOnClickListener(new View.OnClickListener() {
+        save=findViewById(R.id.activity_test);
+        save.setSelected(false);
+        save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //handleYUVClick();//Captura 1 frame a cada 30
                 //frameAccess.handleYUVClickSingleFrame();//Captura somente um frame
-                frameAccess.captureFrameFromSurface();//Captura somente um frame
+                frameAccess.saveFrameFromSurface();//Captura somente um frame
             }
         });
     }
